@@ -4,7 +4,7 @@
  * https://github.com/the1812/Bilibili-Evolved/issues/770
  */
 export const playerReady = () => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise<void>(async (resolve, reject) => {
     await SpinQuery.condition(
       () => unsafeWindow,
       () => unsafeWindow.onLoginInfoLoaded !== undefined,
@@ -18,6 +18,20 @@ export const playerReady = () => {
     }
   })
 }
+export const aidReady = async () => {
+  if (unsafeWindow.aid) {
+    return unsafeWindow.aid
+  }
+  const info = await SpinQuery.condition(
+    () => unsafeWindow?.player?.getVideoMessage?.() as { aid?: string },
+    it => it?.aid !== undefined,
+  ).catch(() => { throw new Error('Cannot find aid') })
+  unsafeWindow.aid = info.aid
+  return info.aid as string
+}
 export default {
-  export: { playerReady },
+  export: {
+    playerReady,
+    aidReady,
+  },
 }

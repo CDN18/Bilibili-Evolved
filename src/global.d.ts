@@ -54,14 +54,12 @@ declare global {
   type Dropdown = { key: string; items: string[] }
   interface RpcOption {
     secretKey: string
-    baseDir: string
     dir: string
     host: string
     port: string
     method: 'get' | 'post'
-    skipByDefault: boolean
-    maxDownloadLimit: string
-    [key: string]: any
+    other: string
+    [key: string]: string
   }
   interface RpcOptionProfile extends RpcOption {
     name: string
@@ -242,12 +240,14 @@ declare global {
     getPriorStyle(): any
     applyStyle(id: string, important: boolean): void
     static all: { [key: string]: Resource }
-    static displayNames: Record<string, string>;
+    static displayNames: Record<string, string>
     static manifest: object
     static root: string
     static cdnRoot: string
+    static reloadables: string[]
   }
   class ResourceManager {
+    attributes: Record<string, any>
     import(componentName: string): any
     getDefaultStyleId(key: string): string
     applyStyle(key: string, id?: string): void
@@ -262,6 +262,7 @@ declare global {
     }): void
     toggleStyle(key: string): void
     applyDropdownOptions(): Promise<void>
+    fetchByKey(key: string): Promise<void>
   }
   const resources: ResourceManager
   class DoubleClickEvent {
@@ -415,6 +416,7 @@ declare global {
     lastSeedsToCoinsDate: number,
     autoDraw: boolean,
     keymap: boolean,
+    keymapPreset: 'Default' | 'YouTube' | 'HTML5Player' | 'PotPlayer',
     doubleClickFullscreen: boolean,
     doubleClickFullscreenPreventSingleClick: boolean
     simplifyHome: boolean,
@@ -516,6 +518,10 @@ declare global {
     liveSpeedBoost: boolean,
     checkInCenter: boolean,
     fullscreenGiftBox: boolean,
+    scrollOutPlayer: boolean,
+    scrollOutPlayerTriggerPlace: string,
+    scrollOutPlayerAutoPause: boolean,
+    scrollOutPlayerAutoLightOn: boolean,
   }
   const GM_info: MonkeyInfo
   function GM_xmlhttpRequest(details: MonkeyXhrDetails): { abort: () => void }

@@ -23,6 +23,11 @@
 # 安装
 需要浏览器拥有 [Tampermonkey](https://tampermonkey.net/) 插件.
 
+**注意事项**
+- 做好觉悟, 脚本开启后不能使用弹幕点赞和举报, 全景视频不能用鼠标拖拽视角(只能用键盘操作), 对性能也有较大影响.
+- 某些破坏性的大更新会使旧版脚本**完全**无法运行, 请及时检查更新.
+- 使用 aria2 RPC 时脚本管理器可能会提示"脚本试图访问跨域资源", 请选择"始终允许".
+
 点击名称即可安装👇
 
 | [正式版](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@master/bilibili-evolved.user.js) | [预览版](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@preview/bilibili-evolved.preview.user.js) | [离线版](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@master/bilibili-evolved.offline.user.js) | [预览离线版](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@preview/bilibili-evolved.preview-offline.user.js) |
@@ -44,6 +49,8 @@
 | jsDelivr | 24h      | 快             | [安装](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@master/bilibili-evolved.user.js) | [安装](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@preview/bilibili-evolved.preview.user.js) | [安装](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@master/bilibili-evolved.offline.user.js) | [安装](https://cdn.jsdelivr.net/gh/the1812/Bilibili-Evolved@preview/bilibili-evolved.preview-offline.user.js) |
 | GitHub   | <1h      | 需要梯子       | [安装](https://github.com/the1812/Bilibili-Evolved/raw/master/bilibili-evolved.user.js)      | [安装](https://github.com/the1812/Bilibili-Evolved/raw/preview/bilibili-evolved.preview.user.js)      | [安装](https://github.com/the1812/Bilibili-Evolved/raw/master/bilibili-evolved.offline.user.js)      | [安装](https://github.com/the1812/Bilibili-Evolved/raw/preview/bilibili-evolved.preview-offline.user.js)      |
 
+### 关于换源
+上面的更换安装源能够以不同的来源安装脚本**本体**, 但脚本还有个热更新机制, 会自动下载脚本**功能**的更新. 如果你想完全更换为 GitHub 源 (例如希望尽快得到刚发布的更新), 除了从上面的 GitHub 安装源安装脚本以外, 安装完还需要在脚本的设置里将 `其他 - 更新源` 从默认的 `jsDelivr` 更换为 `GitHub`.
 
 ## 推荐配置
 - 操作系统: 64-bit Windows 10 / macOS 10.15+
@@ -78,7 +85,8 @@
 可以安装, 但是由于 Greasemonkey 4 只允许脚本在页面完全加载后运行, 样式相关功能体验会比较糟糕, 比如打开夜间模式后每个页面在完全加载之前都是亮色的. 所以还是强烈建议您使用上述的两种脚本管理器.
 
 ### [AdGuard](https://adguard.com/zh_cn/adguard-windows/overview.html)
-不兼容.
+~~不兼容~~
+部分兼容, 加载模式仅可为`延迟(自动)`且无法更改. 经测试, Adguard 在最新7.5.3版本中已支持复杂数据储存.
 
 ## 浏览器
 
@@ -152,10 +160,16 @@ UWP 版 Edge 已经不再支持了(就是 Windows 10 自带的那个), 请使用
 # 我写的其他一些玩意
 
 ## [Touhou Tagger](https://github.com/the1812/Touhou-Tagger)
-☯ 从 THBWiki 自动填写东方Project同人音乐CD曲目信息
+☯ 从 [THBWiki](https://thwiki.cc/) 自动填写东方Project同人音乐CD曲目信息
 
 ## [Malware Patch](https://github.com/the1812/Malware-Patch)
 阻止中国流氓软件的管理员授权
+
+## [dizzylab auto theme](https://github.com/the1812/dizzylab-auto-theme)
+[dizzylab](https://www.dizzylab.net/) 自适应 Stylus 主题, 跟随系统亮/暗设定
+
+## [Steam CSS](https://github.com/the1812/SteamCSS)
+为 [Steam](https://store.steampowered.com/) 的库和内置浏览器插入一段自定义的 CSS, 用于更换字体等
 
 ## [Popcap Patches](https://github.com/the1812/Popcap-Patches)
 Popcap游戏3D加速补丁制作器, 可修复宝石迷阵, 祖玛等游戏

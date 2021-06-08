@@ -61,7 +61,19 @@ const startResolution = async () => {
   })
 }
 startResolution()
-resources.applyStyleFromText(`.favInfo-box .favInfo-cover img {width: 100% !important object-position: left !important}`, 'image-resolution-fix')
+resources.applyStyleFromText(`
+.favInfo-box .favInfo-cover img {
+  width: 100% !important;
+  object-position: left !important;
+}
+.bili-avatar-img {
+  width: 100% !important;
+}
+.bb-comment .sailing .sailing-img,
+.comment-bilibili-fold .sailing .sailing-img {
+  width: 288px;
+}
+`, 'image-resolution-fix')
 export default {
   export: { imageResolution }
 }

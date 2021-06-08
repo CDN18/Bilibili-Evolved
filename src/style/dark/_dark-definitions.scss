@@ -6,6 +6,8 @@
     #{$name}: #{"#" + $level} !important;
   } @else if $length == 0 {
     #{$name}: transparent !important;
+  } @else {
+    #{$name}: #{"#" + $level} !important;
   }
 }
 @mixin set-theme-color($name, $level: "") {
@@ -55,6 +57,15 @@
 }
 @mixin theme-stroke($level: "") {
   @include set-theme-color("stroke", $level);
+}
+
+$vip-color: "FB7299";
+
+@mixin vip-color() {
+  @include set-color("color", $vip-color);
+}
+@mixin vip-background-color() {
+  @include set-color("background-color", $vip-color);
 }
 
 @mixin foreground-background-color($level: "") {

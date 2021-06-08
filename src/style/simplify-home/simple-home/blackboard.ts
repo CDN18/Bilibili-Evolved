@@ -7,13 +7,13 @@ export interface Blackboard {
 export const getBlackboards = async (): Promise<Blackboard[]> => {
   if (dq('.international-home')) {
     const initData = await SpinQuery.condition(() => unsafeWindow['__INITIAL_STATE__'], it => it !== undefined)
-    return dqa('.home-slide .item')
+    return dqa('.first-screen .home-slide .item')
       .slice(0, 5)
       .map((it, index) => {
         const locID = it.querySelector('a')!.getAttribute('data-loc-id')!
         return {
           url: initData.locsData[locID][index].url,
-          title: (it.querySelector('.title') as HTMLElement).innerText!.trim(),
+          title: (it.querySelector('.title') as HTMLElement).textContent!.trim(),
           isAd: Boolean(it.querySelector('.gg-icon,.bypb-icon')),
           imageUrl: it.querySelector('img')!.getAttribute('src')!.replace(/@.+$/, ''),
         } as Blackboard

@@ -4,11 +4,15 @@ export interface FeedsCardType {
   id: number
   name: string
 }
+export interface RepostFeedsCardType extends FeedsCardType {
+  id: 1
+  name: '转发'
+}
 export const feedsCardTypes = {
   repost: {
     id: 1,
     name: '转发',
-  } as FeedsCardType,
+  } as RepostFeedsCardType,
   textWithImages: {
     id: 2,
     name: '图文'
@@ -68,7 +72,7 @@ export const feedsCardTypes = {
   liveRecord: {
     id: 2047, // FIXME: 暂时随便写个 id 了, 这个东西目前找不到 type
     name: '开播记录',
-  },
+  } as FeedsCardType,
 }
 export interface FeedsCard {
   id: string
@@ -81,6 +85,11 @@ export interface FeedsCard {
   type: FeedsCardType
   presented: boolean
   getText: () => Promise<string>
+}
+export interface RepostFeedsCard extends FeedsCard {
+  repostUsername: string
+  repostText: string
+  type: RepostFeedsCardType
 }
 const getFeedsCardType = (element: HTMLElement) => {
   if (element.querySelector('.repost')) {
@@ -112,7 +121,9 @@ const getFeedsCardType = (element: HTMLElement) => {
   }
   return feedsCardTypes.text
 }
-
+const isRepostType = (card: FeedsCard): card is RepostFeedsCard => {
+  return card.type === feedsCardTypes.repost
+}
 export type FeedsCardCallback = {
   added?: (card: FeedsCard) => void
   removed?: (card: FeedsCard) => void
@@ -140,7 +151,10 @@ class FeedsCardsManager extends EventTarget {
   ): void {
     super.removeEventListener(type, callback, options)
   }
-  async addCard(node: Node) {
+  async addCard(node?: Node) {
+    if (node === undefined) {
+      return
+    }
     if (node instanceof HTMLElement && node.classList.contains('card')) {
       if (node.querySelector('.skeleton') !== null) {
         const obs = Observer.childList(node, () => {
@@ -175,7 +189,10 @@ class FeedsCardsManager extends EventTarget {
       }
     }
   }
-  async removeCard(node: Node) {
+  async removeCard(node?: Node) {
+    if (node === undefined) {
+      return
+    }
     if (node instanceof HTMLElement && node.classList.contains('card')) {
       const id = node.getAttribute('data-did') as string
       const index = this.cards.findIndex(c => c.id === id)
@@ -190,6 +207,7 @@ class FeedsCardsManager extends EventTarget {
     }
   }
   async parseCard(element: HTMLElement): Promise<FeedsCard> {
+    const getVueData = (el: any) => el.parentElement.__vue__
     const getSimpleText = async (selector: string) => {
       const subElement = await SpinQuery.condition(
         () => element.querySelector(selector),
@@ -206,37 +224,52 @@ class FeedsCardsManager extends EventTarget {
       const subElementText = subElement.innerText.trim()
       return subElementText
     }
+    const getRepostData = (vueData: any) => {
+      // 被转发动态已失效
+      if (vueData.card.origin === undefined) {
+        return {
+          originalText: '',
+          originalDescription: '',
+          originalTitle: '',
+        }
+      }
+      const originalCard = JSON.parse(vueData.card.origin)
+      const originalText: string = vueData.originCardData.pureText
+      const originalDescription: string = _.get(originalCard, 'item.description', '')
+      const originalTitle: string = originalCard.title
+      return {
+        originalText,
+        originalDescription,
+        originalTitle,
+      }
+    }
     const getComplexText = async (type: FeedsCardType) => {
       if (type === feedsCardTypes.bangumi) {
         return ''
       }
-      const el = await SpinQuery.condition(() => element, (it: any) => Boolean(it.__vue__ || !element.parentNode))
+      const el = await SpinQuery.condition(() => element, it => Boolean(getVueData(it) || !element.parentNode))
       if (element.parentNode === null) {
         // console.log('skip detached node:', element)
         return ''
       }
       if (el === null) {
-        console.warn(el)
+        console.warn(el, element, getVueData(el), element.parentNode)
         return ''
       }
       // if (!el.__vue__.card.origin) {
       //   return ''
       // }
+      const vueData = getVueData(el)
       if (type === feedsCardTypes.repost) {
-        const originalCard = JSON.parse(el.__vue__.card.origin)
-        const originalText = el.__vue__.originCardData.pureText
-        const originalDescription = _.get(originalCard, 'item.description', '')
-        const originalTitle = originalCard.title
-        const currentText = el.__vue__.card.item.content
+        const currentText = vueData.card.item.content
+        const repostData = getRepostData(vueData)
         return [
           currentText,
-          originalText,
-          originalDescription,
-          originalTitle
+          ...Object.values(repostData).filter(it => it !== ''),
         ].filter(it => Boolean(it)).join('\n')
       }
-      const currentText = el.__vue__.originCardData.pureText
-      const currentTitle = el.__vue__.originCardData.title
+      const currentText = vueData.originCardData.pureText
+      const currentTitle = vueData.originCardData.title
       return [
         currentText,
         currentTitle,
@@ -269,12 +302,15 @@ class FeedsCardsManager extends EventTarget {
     await card.getText()
     card.presented = element.parentNode !== null
     element.setAttribute('data-type', card.type.id.toString())
-    if (card.type === feedsCardTypes.repost) {
+    if (isRepostType(card)) {
       const currentUsername = card.username
-      const repostUsername = _.get(card, 'element.__vue__.card.origin_user.info.uname', '')
+      const vueData = getVueData(card.element)
+      const repostUsername = _.get(vueData, 'card.origin_user.info.uname', '')
       if (currentUsername === repostUsername) {
         element.setAttribute('data-self-repost', 'true')
       }
+      card.repostUsername = repostUsername
+      card.repostText = getRepostData(vueData).originalText
     }
     // if (card.text === '') {
     //   console.warn('card text parsing failed!', card)
@@ -283,13 +319,26 @@ class FeedsCardsManager extends EventTarget {
   }
   async startWatching() {
     const updateCards = (cardsList: HTMLElement) => {
-      const cards = [...cardsList.querySelectorAll('.card[data-did]')]
+      const selector = '.card[data-did]'
+      const findCardNode = (node: Node): Node | undefined => {
+        if (node instanceof HTMLElement) {
+          if (node.matches(selector)) {
+            return node
+          }
+          const child = node.querySelector(selector)
+          if (child) {
+            return child
+          }
+        }
+        return undefined
+      }
+      const cards = [...cardsList.querySelectorAll(selector)]
       cards.forEach(it => this.addCard(it))
       console.log(cards)
       return Observer.childList(cardsList, records => {
         records.forEach(record => {
-          record.addedNodes.forEach(node => this.addCard(node))
-          record.removedNodes.forEach(node => this.removeCard(node))
+          record.addedNodes.forEach(node => this.addCard(findCardNode(node)))
+          record.removedNodes.forEach(node => this.removeCard(findCardNode(node)))
         })
       })
     }
@@ -387,6 +436,37 @@ class FeedsCardsManager extends EventTarget {
 }
 export const feedsCardsManager = new FeedsCardsManager()
 
+export const isCardBlocked = (card: Pick<FeedsCard, 'text' | 'username'>) => {
+  if (!settings.feedsFilter) {
+    return false
+  }
+  const testPattern = (pattern: Pattern, text: string) => {
+    if (pattern.startsWith('/') && pattern.endsWith('/')) {
+      return new RegExp(pattern.slice(1, pattern.length - 1)).test(text)
+    }
+    return text.includes(pattern)
+  }
+  return settings.feedsFilterPatterns.some(pattern => {
+    const upNameMatch = pattern.match(/(.+) up:([^ ]+)/)
+    if (upNameMatch) {
+      return (
+        testPattern(upNameMatch[1], card.text) &&
+        testPattern(upNameMatch[2], card.username)
+      )
+    }
+    return testPattern(pattern, card.text)
+  })
+}
+export const isVideoCardBlocked = (card: Pick<VideoCardInfo, 'title' | 'dynamic' | 'upName'>) => {
+  return isCardBlocked({
+    text: card.title + (card.dynamic ?? ''),
+    username: card.upName,
+  })
+}
+export const isPreOrderedVideo = (card: any) => {
+  return _.get(card, 'extra.is_reserve_recall', 0) === 1
+}
+
 export const getVideoFeeds = async (type: 'video' | 'bangumi' = 'video'): Promise<VideoCardInfo[]> => {
   if (!getUID()) {
     return []
@@ -397,69 +477,72 @@ export const getVideoFeeds = async (type: 'video' | 'bangumi' = 'video'): Promis
   if (json.code !== 0) {
     throw new Error(json.message)
   }
-  if (type === 'video') {
-    return _.uniqBy(json.data.cards.map(
-      (c: any): VideoCardInfo => {
-        const card = JSON.parse(c.card)
-        const topics = _.get(c, 'display.topic_info.topic_details', []).map(
-          (it: any) => {
-            return {
-              id: it.topic_id,
-              name: it.topic_name
+  const cards = (() => {
+    const jsonCards = json.data.cards as any[]
+    if (type === 'video') {
+      return _.uniqBy(jsonCards.map(
+        (c: any): VideoCardInfo => {
+          const card = JSON.parse(c.card)
+          const topics = _.get(c, 'display.topic_info.topic_details', []).map(
+            (it: any) => {
+              return {
+                id: it.topic_id,
+                name: it.topic_name
+              }
             }
-          }
-        )
-        return {
-          id: c.desc.dynamic_id_str,
-          aid: card.aid,
-          bvid: c.desc.bvid || card.bvid,
-          title: card.title,
-          upID: c.desc.user_profile.info.uid,
-          upName: c.desc.user_profile.info.uname,
-          upFaceUrl: c.desc.user_profile.info.face,
-          coverUrl: card.pic,
-          description: card.desc,
-          timestamp: c.timestamp,
-          time: new Date(c.timestamp * 1000),
-          topics,
-          dynamic: card.dynamic,
-          like: formatCount(c.desc.like),
-          duration: card.duration,
-          durationText: formatDuration(card.duration, 0),
-          playCount: formatCount(card.stat.view),
-          danmakuCount: formatCount(card.stat.danmaku),
-          watchlater: store.state.watchlaterList.includes(card.aid)
+          )
+          return {
+            id: c.desc.dynamic_id_str,
+            aid: card.aid,
+            bvid: c.desc.bvid || card.bvid,
+            title: card.title,
+            upID: c.desc.user_profile.info.uid,
+            upName: c.desc.user_profile.info.uname,
+            upFaceUrl: c.desc.user_profile.info.face,
+            coverUrl: card.pic,
+            description: card.desc,
+            timestamp: c.timestamp,
+            time: new Date(c.timestamp * 1000),
+            topics,
+            dynamic: card.dynamic,
+            like: formatCount(c.desc.like),
+            duration: card.duration,
+            durationText: formatDuration(card.duration, 0),
+            playCount: formatCount(card.stat.view),
+            danmakuCount: formatCount(card.stat.danmaku),
+            watchlater: store.state.watchlaterList.includes(card.aid)
+          } as VideoCardInfo
         }
-      }
-    ), it => it.aid)
-  } else if (type === 'bangumi') {
-    return json.data.cards.map(
-      (c: any): VideoCardInfo => {
-        const card = JSON.parse(c.card)
-        return {
-          id: c.desc.dynamic_id_str,
-          aid: card.aid,
-          bvid: c.desc.bvid || card.bvid,
-          epID: card.episode_id,
-          title: card.new_desc,
-          upName: card.apiSeasonInfo.title,
-          upFaceUrl: card.apiSeasonInfo.cover,
-          coverUrl: card.cover,
-          description: '',
-          timestamp: c.timestamp,
-          time: new Date(c.timestamp * 1000),
-          like: formatCount(c.desc.like),
-          durationText: '',
-          playCount: formatCount(card.play_count),
-          danmakuCount: formatCount(card.bullet_count),
-          watchlater: false,
+      ), it => it.aid)
+    } else if (type === 'bangumi') {
+      return jsonCards.map(
+        (c: any): VideoCardInfo => {
+          const card = JSON.parse(c.card)
+          return {
+            id: c.desc.dynamic_id_str,
+            aid: card.aid,
+            bvid: c.desc.bvid || card.bvid,
+            epID: card.episode_id,
+            title: card.new_desc,
+            upName: card.apiSeasonInfo.title,
+            upFaceUrl: card.apiSeasonInfo.cover,
+            coverUrl: card.cover,
+            description: '',
+            timestamp: c.timestamp,
+            time: new Date(c.timestamp * 1000),
+            like: formatCount(c.desc.like),
+            durationText: '',
+            playCount: formatCount(card.play_count),
+            danmakuCount: formatCount(card.bullet_count),
+            watchlater: false,
+          } as VideoCardInfo
         }
-      }
-    )
-
-  } else {
-    return []
-  }
+      )
+    } else {
+      return []
+    }
+  })()
+  return cards.filter(c => !isVideoCardBlocked(c))
 }
 
 export const forEachFeedsCard = (callback: FeedsCardCallback) => {
@@ -524,5 +607,8 @@ export default {
     getVideoFeeds,
     forEachFeedsCard,
     addMenuItem,
+    isCardBlocked,
+    isVideoCardBlocked,
+    isPreOrderedVideo,
   },
 }

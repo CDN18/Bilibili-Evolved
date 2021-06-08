@@ -41,17 +41,20 @@
 .multi-page .cur-list .list-box li .duration {
   @include color("a");
 }
-.interact-dialog .con::before {
-  content: "";
-  background: url(https://s1.hdslb.com/bfs/static/jinkela/video/asserts/interact-dialog.png);
-  filter: invert(1);
-  background-size: 242px 198px;
-  width: 242px;
-  height: 198px;
-  display: block;
-  position: absolute;
-  background-repeat: no-repeat;
-  clip-path: inset(60% 35% 0 35%);
+.interact-dialog .dialog-body {
+  @include background-color("2");
+  &::before {
+    content: "";
+    background: url(https://s1.hdslb.com/bfs/static/jinkela/video/asserts/interact-dialog.png);
+    filter: invert(1);
+    background-size: 242px 198px;
+    width: 242px;
+    height: 198px;
+    display: block;
+    position: absolute;
+    background-repeat: no-repeat;
+    clip-path: inset(60% 35% 0 35%);
+  }
 }
 #app {
   .channel-sidebar {
@@ -117,11 +120,11 @@
       .textarea-container {
         .baffle,
         .comment-submit {
-          @include background-color("666");
+          @include background-color("6");
         }
       }
       .comment-emoji {
-        @include background-color("666");
+        @include background-color("6");
       }
     }
   }
@@ -586,25 +589,35 @@ html {
     @include to-theme("blue");
   }
 }
+// 进度条 viewport
+.bilibili-player-view-points[data-type="-1"] > span {
+  @include background-color("aaaa");
+}
 .resizable-component {
   .note-drag-bar {
-    @include background-color("6");
+    @include background-color("4");
     @include color("a");
-    .btns {
+    .status-bar {
+      @include color("a");
+    }
+    .operation-btns {
       .space-btn,
       .question-btn,
       .close-btn {
-        @include background-color("8");
-        @include color("5");
+        @include background-color("5");
+        @include color("d");
+        &:hover {
+          @include theme-color();
+        }
       }
     }
   }
 }
-.video-editor {
-  @include background-color("5");
+.bili-note {
+  @include background-color("3");
   .ql-toolbar {
     @include color("9");
-    @include background-color("5");
+    @include background-color();
     .readonly-mask {
       background-color: #000 !important;
       opacity: 0.4 !important;
@@ -630,7 +643,7 @@ html {
       }
     }
     .ql-picker-options {
-      @include background-color("6");
+      @include background-color();
       @include color("a");
     }
     .ql-picker-item:hover,
@@ -658,13 +671,13 @@ html {
   .editor-innter {
     @include color("e");
     @include border-color();
-    @include background-color("4");
+    @include background-color("2");
     .ql-tag-blot {
-      .tag-item {
-        @include background-color("5");
+      .time-tag-item {
+        @include background-color("3");
         @include border-color();
         @include theme-color();
-        .time::before {
+        .time-tag-item__text::before {
           @include theme-background-color();
         }
       }
@@ -673,7 +686,7 @@ html {
       box-shadow: 0 2px 8px 0 hsl(0deg 0% 15% / 50%) !important;
       @include border-color();
       .img-preview {
-        @include border-color("5");
+        @include border-color("3");
       }
     }
   }
